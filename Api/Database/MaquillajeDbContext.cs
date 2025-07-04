@@ -6,6 +6,7 @@ namespace Api.Database
     public class MaquillajeDbContext: DbContext
     {
         public DbSet<Cliente> Clientes { get; set; }
+        public DbSet<Producto> Productos { get; set; }
 
         public MaquillajeDbContext(DbContextOptions<MaquillajeDbContext> options)
             : base(options)
@@ -16,6 +17,7 @@ namespace Api.Database
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Cliente>().ToTable("Clientes"); // nombre de la tabla en la BD
+            modelBuilder.Entity<Producto>().ToTable("Productos"); // nombre de la tabla en la BD
         }
     }
 }

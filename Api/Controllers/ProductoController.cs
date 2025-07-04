@@ -1,0 +1,113 @@
+﻿using Api.Database;
+using Api.ModelDTO;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System;
+
+// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+
+namespace Api.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ProductoController : ControllerBase
+    {
+        private readonly MaquillajeDbContext _context;
+
+        public ProductoController(MaquillajeDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/Productos
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Producto>>> GetProductos()
+        {
+            return await _context.Productos.ToListAsync();
+        }
+
+        // GET: api/Productos/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Producto>> GetProducto(int id)
+        {
+            var producto = await _context.Productos.FindAsync(id);
+
+            if (producto == null)
+            {
+                return NotFound();
+            }
+
+            return producto;
+        }
+
+        // POST: api/Productos
+        [HttpPost]
+        public async Task<ActionResult<Producto>> PostProducto(Producto producto)
+        {
+            _context.Productos.Add(producto);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetProducto), new { id = producto.Id }, producto);
+        }
+
+        // PUT: api/Productos/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutProducto(int id, [FromForm] ProductoDto productoDto)
+        {
+            if (productoDto.Imagen != null && productoDto.Imagen.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                Directory.CreateDirectory(uploadsFolder); // crea si no existe
+
+                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(productoDto.Imagen.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await productoDto.Imagen.CopyToAsync(stream);
+                }
+
+                // Aquí guardas solo el nombre del archivo
+                var producto = new Producto
+                {
+                    Id = id,
+                    Nombre = productoDto.Nombre,
+                    Descripcion = productoDto.Descripcion,
+                    Precio = productoDto.Precio,
+                    CantidadEnStock = productoDto.CantidadEnStock,
+                    Imagen = uniqueFileName
+                };
+
+                _context.Entry(producto).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+                return Ok(producto);
+            }
+
+            return BadRequest("Debe subir una imagen");
+        }
+
+
+
+
+        // DELETE: api/Productos/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProducto(int id)
+        {
+            var producto = await _context.Productos.FindAsync(id);
+            if (producto == null)
+            {
+                return NotFound();
+            }
+
+            _context.Productos.Remove(producto);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private bool ProductoExists(int id)
+        {
+            return _context.Productos.Any(e => e.Id == id);
+        }
+    }
+}
