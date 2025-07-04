@@ -50,14 +50,19 @@ namespace Api.Controllers
             return CreatedAtAction(nameof(GetProducto), new { id = producto.Id }, producto);
         }
 
-        // PUT: api/Productos/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutProducto(int id, [FromForm] ProductoDto productoDto)
         {
+            var productoExistente = await _context.Productos.FindAsync(id);
+
+            if (productoExistente == null)
+                return NotFound("Producto no encontrado.");
+
+            // Si se sube una nueva imagen
             if (productoDto.Imagen != null && productoDto.Imagen.Length > 0)
             {
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                Directory.CreateDirectory(uploadsFolder); // crea si no existe
+                Directory.CreateDirectory(uploadsFolder);
 
                 var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(productoDto.Imagen.FileName);
                 var filePath = Path.Combine(uploadsFolder, uniqueFileName);
@@ -67,27 +72,26 @@ namespace Api.Controllers
                     await productoDto.Imagen.CopyToAsync(stream);
                 }
 
-                // Aquí guardas solo el nombre del archivo
-                var producto = new Producto
+                // Eliminar imagen anterior (opcional)
+                if (!string.IsNullOrEmpty(productoExistente.Imagen))
                 {
-                    Id = id,
-                    Nombre = productoDto.Nombre,
-                    Descripcion = productoDto.Descripcion,
-                    Precio = productoDto.Precio,
-                    CantidadEnStock = productoDto.CantidadEnStock,
-                    Imagen = uniqueFileName
-                };
+                    var rutaAnterior = Path.Combine(uploadsFolder, productoExistente.Imagen);
+                    if (System.IO.File.Exists(rutaAnterior))
+                        System.IO.File.Delete(rutaAnterior);
+                }
 
-                _context.Entry(producto).State = EntityState.Modified;
-                await _context.SaveChangesAsync();
-                return Ok(producto);
+                productoExistente.Imagen = uniqueFileName;
             }
 
-            return BadRequest("Debe subir una imagen");
+            // Actualizar campos
+            productoExistente.Nombre = productoDto.Nombre;
+            productoExistente.Descripcion = productoDto.Descripcion;
+            productoExistente.Precio = productoDto.Precio;
+            productoExistente.CantidadEnStock = productoDto.CantidadEnStock;
+
+            await _context.SaveChangesAsync();
+            return Ok(productoExistente);
         }
-
-
-
 
         // DELETE: api/Productos/5
         [HttpDelete("{id}")]

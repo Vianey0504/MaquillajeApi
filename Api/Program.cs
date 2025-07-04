@@ -32,11 +32,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+// Habilitar archivos estáticos (esto permite servir /uploads/)
+app.UseStaticFiles();
 
-app.UseHttpsRedirection();
-
+app.UseRouting();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
